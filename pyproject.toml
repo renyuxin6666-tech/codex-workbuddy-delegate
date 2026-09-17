@@ -1,0 +1,10 @@
+[project]
+name = "codex-workbuddy-delegate"
+version = "0.1.0"
+description = "A local Codex plugin for bounded delegation to an existing WorkBuddy installation."
+requires-python = ">=3.10"
+license = "MIT"
+authors = [{ name = "Yuxin Ren" }]
+
+[tool.unittest]
+start-directory = "tests"

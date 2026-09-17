@@ -1,0 +1,29 @@
+{
+  "name": "workbuddy-delegate",
+  "version": "0.1.0",
+  "description": "Bounded local delegation from Codex to WorkBuddy with usage limits and main-agent review.",
+  "author": {
+    "name": "Yuxin Ren",
+    "url": "https://yuxinren.com"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "WorkBuddy Delegate",
+    "shortDescription": "Bounded local delegation with review.",
+    "longDescription": "Route bounded low-risk text work to an existing local WorkBuddy installation while Codex retains final judgment.",
+    "developerName": "Yuxin Ren",
+    "category": "Productivity",
+    "capabilities": ["Bounded delegation", "Usage limits", "Local result audit"],
+    "websiteURL": "https://yuxinren.com/#research",
+    "privacyPolicyURL": "https://github.com/renyuxin6666-tech/codex-workbuddy-delegate/blob/main/PRIVACY.md",
+    "defaultPrompt": [
+      "Check whether this text task is safe to delegate.",
+      "Summarize these allowed files with WorkBuddy, then verify it.",
+      "Show WorkBuddy Delegate status and usage limits."
+    ],
+    "brandColor": "#315C50",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/logo.svg"
+  },
+  "mcpServers": "./.mcp.json"
+}

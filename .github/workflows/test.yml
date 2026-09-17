@@ -1,0 +1,30 @@
+name: test
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-tests:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Compile
+        run: python -m py_compile plugins/workbuddy-delegate/scripts/workbuddy_bridge.py plugins/workbuddy-delegate/scripts/mcp_server.py plugins/workbuddy-delegate/scripts/manage.py
+      - name: Offline unit and MCP tests
+        run: python -m unittest discover -s tests -v
+      - name: Offline manager smoke test
+        run: python plugins/workbuddy-delegate/scripts/manage.py self-test
+      - name: Validate JSON manifests
+        shell: pwsh
+        run: |
+          Get-Content -Raw plugins/workbuddy-delegate/plugin.json | ConvertFrom-Json | Out-Null
+          Get-Content -Raw plugins/workbuddy-delegate/mcp.json | ConvertFrom-Json | Out-Null
+          Get-Content -Raw .agents/plugins/marketplace.json | ConvertFrom-Json | Out-Null
+          Get-Content -Raw benchmark/acceptance-v0.1.0.json | ConvertFrom-Json | Out-Null

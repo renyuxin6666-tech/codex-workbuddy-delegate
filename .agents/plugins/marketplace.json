@@ -1,0 +1,20 @@
+{
+  "name": "renyuxin-tools",
+  "interface": {
+    "displayName": "Renyuxin Tools"
+  },
+  "plugins": [
+    {
+      "name": "workbuddy-delegate",
+      "source": {
+        "source": "local",
+        "path": "./plugins/workbuddy-delegate"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

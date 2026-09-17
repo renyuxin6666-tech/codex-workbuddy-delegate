@@ -1,0 +1,15 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "workbuddy-delegate": {
+      "type": "stdio",
+      "command": "python",
+      "args": ["-X", "utf8", "${PLUGIN_ROOT}/scripts/mcp_server.py"],
+      "cwd": "${PLUGIN_ROOT}",
+      "env": {
+        "WORKBUDDY_DELEGATE_CONFIG": "${PLUGIN_DATA}/config.json",
+        "WORKBUDDY_DELEGATE_STATE_DIR": "${PLUGIN_DATA}/runtime"
+      }
+    }
+  }
+}

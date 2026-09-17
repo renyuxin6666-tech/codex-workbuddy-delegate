@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">WorkBuddy Delegate</title>
+  <rect width="64" height="64" rx="15" fill="#315c50"/>
+  <path d="M16 20h19a9 9 0 0 1 0 18H24" fill="none" stroke="#f5f0e8" stroke-width="6" stroke-linecap="round"/>
+  <path d="m27 30-10 9 10 9" fill="none" stroke="#d9a441" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="45" cy="45" r="5" fill="#f5f0e8"/>
+</svg>

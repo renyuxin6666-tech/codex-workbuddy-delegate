@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 112" role="img" aria-labelledby="title desc">
+  <title id="title">WorkBuddy Delegate</title>
+  <desc id="desc">A bounded delegation arrow beside the WorkBuddy Delegate name.</desc>
+  <rect width="440" height="112" rx="22" fill="#f5f0e8"/>
+  <rect x="16" y="16" width="80" height="80" rx="18" fill="#315c50"/>
+  <path d="M34 40h25a11 11 0 0 1 0 22H44" fill="none" stroke="#f5f0e8" stroke-width="7" stroke-linecap="round"/>
+  <path d="m49 53-13 12 13 12" fill="none" stroke="#d9a441" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="73" cy="75" r="6" fill="#f5f0e8"/>
+  <text x="116" y="50" font-family="Inter,Segoe UI,sans-serif" font-size="27" font-weight="700" fill="#1c2b27">WorkBuddy</text>
+  <text x="116" y="80" font-family="Inter,Segoe UI,sans-serif" font-size="24" font-weight="500" letter-spacing="2" fill="#315c50">DELEGATE</text>
+</svg>

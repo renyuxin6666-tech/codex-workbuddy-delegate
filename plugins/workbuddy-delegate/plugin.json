@@ -1,0 +1,36 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "workbuddy-delegate",
+  "version": "0.1.0",
+  "description": "Delegate bounded low-risk text work from Codex to an existing local WorkBuddy installation, with limits and main-agent review.",
+  "author": {
+    "name": "Yuxin Ren",
+    "url": "https://yuxinren.com"
+  },
+  "homepage": "https://yuxinren.com/#research",
+  "repository": "https://github.com/renyuxin6666-tech/codex-workbuddy-delegate",
+  "license": "MIT",
+  "keywords": ["codex", "workbuddy", "delegation", "local-mcp", "windows"],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "WorkBuddy Delegate",
+        "shortDescription": "Bounded local delegation with review.",
+        "longDescription": "A Windows-first community plugin that routes bounded, low-risk text tasks to an existing WorkBuddy installation. Calls are isolated and usage-limited; Codex keeps final judgment.",
+        "developerName": "Yuxin Ren",
+        "category": "Productivity",
+        "capabilities": ["Bounded delegation", "Usage limits", "Local result audit"],
+        "websiteURL": "https://yuxinren.com/#research",
+        "privacyPolicyURL": "https://github.com/renyuxin6666-tech/codex-workbuddy-delegate/blob/main/PRIVACY.md",
+        "defaultPrompt": [
+          "Check whether this text task is safe to delegate.",
+          "Summarize these allowed files with WorkBuddy, then verify it.",
+          "Show WorkBuddy Delegate status and usage limits."
+        ],
+        "brandColor": "#315C50",
+        "composerIcon": "./assets/icon.svg",
+        "logo": "./assets/logo.svg"
+      }
+    }
+  }
+}

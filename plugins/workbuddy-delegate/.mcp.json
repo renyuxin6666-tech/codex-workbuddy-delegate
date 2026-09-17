@@ -1,0 +1,21 @@
+{
+  "mcpServers": {
+    "workbuddy-delegate": {
+      "type": "stdio",
+      "command": "cmd.exe",
+      "cwd": ".",
+      "args": ["/d", "/s", "/c", "call", "./scripts/launch_mcp.cmd"],
+      "env_vars": ["LOCALAPPDATA", "USERPROFILE", "APPDATA", "PATH", "TEMP", "TMP", "SystemRoot"],
+      "startup_timeout_sec": 15,
+      "tool_timeout_sec": 180,
+      "default_tools_approval_mode": "prompt",
+      "tools": {
+        "workbuddy_status": {"approval_mode": "approve"},
+        "workbuddy_plan": {"approval_mode": "approve"},
+        "workbuddy_usage": {"approval_mode": "approve"},
+        "workbuddy_read_result": {"approval_mode": "approve"},
+        "delegate_to_workbuddy": {"approval_mode": "prompt"}
+      }
+    }
+  }
+}
