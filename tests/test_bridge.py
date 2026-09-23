@@ -209,6 +209,32 @@ class CliParsingTests(unittest.TestCase):
             with self.subTest(raw=raw), self.assertRaises(bridge.BridgeError):
                 bridge.parse_cli(raw)
 
+    def test_json_lines_and_bom_are_accepted_without_relaxing_event_checks(self):
+        raw = "\ufeff" + json.dumps({"type": "system"}) + "\n" + json.dumps(success_event()) + "\n"
+        answer, usage = bridge.parse_cli(raw)
+        self.assertEqual(answer, "answer")
+        self.assertEqual(usage["input_tokens"], 20)
+        with self.assertRaises(bridge.BridgeError):
+            bridge.parse_cli(json.dumps({"type": "tool_use"}) + "\n" + json.dumps(success_event()))
+
+    def test_invalid_json_reports_shape_not_raw_worker_output(self):
+        raw = "Private source text must not appear in an error."
+        with self.assertRaises(bridge.BridgeError) as caught:
+            bridge.parse_cli(raw)
+        self.assertEqual(caught.exception.details["code"], "invalid_worker_json")
+        self.assertEqual(caught.exception.details["stdout_shape"], "plain_text")
+        self.assertNotIn(raw, str(caught.exception) + str(caught.exception.details))
+        mixed = json.dumps(success_event()) + "\nprivate diagnostic line"
+        with self.assertRaises(bridge.BridgeError) as mixed_error:
+            bridge.parse_cli(mixed)
+        self.assertEqual(mixed_error.exception.details["code"], "invalid_worker_json")
+        self.assertNotIn("private diagnostic line", str(mixed_error.exception.details))
+
+    def test_invalid_json_with_permission_stderr_is_classified(self):
+        with self.assertRaises(bridge.BridgeError) as caught:
+            bridge.parse_cli("not JSON", "EPERM: private path withheld")
+        self.assertEqual(caught.exception.details["code"], "access_denied")
+
     def test_child_environment_drops_api_keys(self):
         cfg = {**bridge.DEFAULT_CONFIG, "node_path": sys.executable}
         with patch.object(bridge, "installation", return_value=(sys.executable, Path("C:/fake/cli"))), patch.dict(

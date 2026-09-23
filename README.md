@@ -86,6 +86,12 @@ python plugins/workbuddy-delegate/scripts/manage.py cache prune
 
 By default, portable installs place config and runtime state under the plugin's managed `${PLUGIN_DATA}` directory. Direct script use falls back to `%LOCALAPPDATA%\WorkBuddyDelegate`.
 
+The legacy Codex MCP launcher now requires either `PLUGIN_DATA` or both explicit
+`WORKBUDDY_DELEGATE_CONFIG` and `WORKBUDDY_DELEGATE_STATE_DIR` environment
+variables. It will stop instead of silently opening the direct-script fallback.
+For a headless run, point both explicit variables at the paths returned by the
+native `workbuddy_status`; do not copy secrets or replace the allowed-root list.
+
 After setup, call the native `workbuddy_status` and verify that its `allowed_roots`
 and model match the changes. If the manager and MCP disagree, they are reading
 different configuration paths; use the explicit path arguments above. Do not
@@ -113,7 +119,7 @@ Keep in Codex:
 
 ## Evaluation snapshot
 
-To test actual Token efficiency and quality, see the [preregistered paired experiment plan](experiment/PROTOCOL.md). It separates Codex usage, WorkBuddy usage, blind quality scores, failures, and optional lower-tier Codex subagents. The [2026-09-23 preflight](experiment/PREFLIGHT_2026-09-23.md) stopped before scored A/B runs because the headless delegate path failed; status is `inconclusive`, with no savings result claimed.
+To test actual Token efficiency and quality, see the [preregistered paired experiment plan](experiment/PROTOCOL.md). It separates Codex usage, WorkBuddy usage, blind quality scores, failures, and optional lower-tier Codex subagents. The [2026-09-23 preflight](experiment/PREFLIGHT_2026-09-23.md) stopped before scored A/B runs; the [repair follow-up](experiment/REPAIR_2026-09-23.md) fixed path routing and hardened JSON handling, but a live check now reports a possible WorkBuddy login issue. Status remains `inconclusive`, with no savings result claimed.
 
 The bounded prototype scored **93.18/100** on one synthetic 22,049-character authority/version extraction fixture, but failed the strict completeness gate because it captured only **6/11** superseded historical relations. It captured current constraints **5/5**, unresolved issues **1/1**, and exact evidence **6/6**, with no accepted prompt-injection instruction. This supports current-state extraction with Codex review—not complete historical auditing or generalized performance. See [BENCHMARK.md](BENCHMARK.md).
 

@@ -21,7 +21,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 
-VERSION = "0.1.0+codex.20260923050437"
+VERSION = "0.1.1+codex.2026092315"
 KINDS = {"summarize", "extract", "classify", "translate", "rewrite", "code_draft"}
 DEFAULT_CONFIG: dict[str, Any] = {
     "model": "auto",
@@ -376,11 +376,45 @@ def build_command(cfg: dict[str, Any]) -> tuple[list[str], dict[str, str]]:
     return args, environment
 
 
-def parse_cli(raw: str) -> tuple[str, dict[str, Any]]:
+def _output_shape(raw: str) -> str:
+    leading = raw.lstrip("\ufeff \t\r\n")
+    if not leading:
+        return "empty"
+    if leading.startswith("\x1b"):
+        return "terminal_escape"
+    if leading.startswith("<"):
+        return "markup"
+    if leading.startswith(("{", "[")):
+        return "json_prefix"
+    return "plain_text"
+
+
+def parse_cli(raw: str, stderr: str = "") -> tuple[str, dict[str, Any]]:
+    cleaned = raw.lstrip("\ufeff")
     try:
-        events = json.loads(raw)
+        events = json.loads(cleaned)
     except json.JSONDecodeError as exc:
-        raise BridgeError("WorkBuddy returned invalid JSON; inspect login and client health.") from exc
+        # Some CLI versions emit one JSON event per line. Accept this only if
+        # every nonblank line parses; never salvage a response mixed with logs.
+        lines = [line for line in cleaned.splitlines() if line.strip()]
+        try:
+            events = [json.loads(line) for line in lines] if len(lines) > 1 else None
+        except json.JSONDecodeError:
+            events = None
+        if not isinstance(events, list) or not all(isinstance(event, dict) for event in events):
+            if stderr and any(re.search(pattern, stderr, re.I) for pattern in
+                              (r"401|unauthorized|not logged in|login required|登录",
+                               r"429|quota|rate.limit|insufficient|余额|额度",
+                               r"403|forbidden|permission|access.denied|EACCES|EPERM|权限",
+                               r"ENOTFOUND|ECONN|ETIMEDOUT|certificate|proxy|network")):
+                raise cli_failure(stderr) from exc
+            raise BridgeError(
+                "WorkBuddy did not return a complete JSON response; no automatic retry.",
+                code="invalid_worker_json", stage="worker", request_sent="unknown",
+                stdout_shape=_output_shape(raw), stdout_chars=len(raw),
+                stdout_lines=len(lines), stderr_present=bool(stderr.strip()),
+                action="Check WorkBuddy client health and exact runtime paths; do not expose raw output.",
+            ) from exc
     if isinstance(events, dict):
         events = [events]
     if not isinstance(events, list):
@@ -438,7 +472,7 @@ def invoke(cfg: dict[str, Any], prompt: str, cwd: Path) -> tuple[str, dict[str, 
         raise BridgeError("WorkBuddy timed out; the child stopped. Remote billing may have occurred. No retry.") from exc
     if process.returncode:
         raise cli_failure(process.stderr + "\n" + process.stdout)
-    return parse_cli(process.stdout)
+    return parse_cli(process.stdout, process.stderr)
 
 
 def validate_worker_result(raw: str, sources: dict[str, str], kind: str) -> dict[str, Any]:

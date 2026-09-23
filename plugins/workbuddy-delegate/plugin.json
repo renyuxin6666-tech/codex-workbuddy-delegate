@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "workbuddy-delegate",
-  "version": "0.1.0+codex.20260923050437",
+  "version": "0.1.1+codex.2026092315",
   "description": "Delegate bounded low-risk text work from Codex to an existing local WorkBuddy installation, with limits and main-agent review.",
   "author": {
     "name": "Yuxin Ren",

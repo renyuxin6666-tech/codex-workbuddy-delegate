@@ -86,6 +86,76 @@ class ProcessTransportTests(unittest.TestCase):
         # serve() handles a batch array as an invalid request instead of processing it.
         self.assertEqual(mcp_server.handle({"id": 1})["error"]["code"], -32600)
 
+    @unittest.skipUnless(os.name == "nt", "Legacy launcher is a Windows batch file")
+    def test_legacy_launcher_uses_plugin_data_not_legacy_home(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            environment = os.environ.copy()
+            for name in ("WORKBUDDY_DELEGATE_CONFIG", "WORKBUDDY_DELEGATE_STATE_DIR", "CLAUDE_PLUGIN_DATA"):
+                environment.pop(name, None)
+            environment["PLUGIN_DATA"] = temporary
+            request = {"jsonrpc": "2.0", "id": 1, "method": "tools/call",
+                       "params": {"name": "workbuddy_status", "arguments": {}}}
+            process = subprocess.run(
+                ["cmd.exe", "/d", "/s", "/c", "call", str(SCRIPTS / "launch_mcp.cmd")],
+                input=json.dumps(request) + "\n", text=True, encoding="utf-8",
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                cwd=SCRIPTS.parent, env=environment, timeout=15,
+            )
+            self.assertEqual(process.returncode, 0, process.stderr)
+            status = json.loads(process.stdout)["result"]["structuredContent"]
+            self.assertEqual(Path(status["config_path"]), Path(temporary) / "config.json")
+            self.assertEqual(Path(status["state_path"]), Path(temporary) / "runtime")
+
+    @unittest.skipUnless(os.name == "nt", "Legacy launcher is a Windows batch file")
+    def test_legacy_launcher_explicit_paths_override_plugin_data(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            environment = os.environ.copy()
+            environment["PLUGIN_DATA"] = str(base / "other")
+            environment["WORKBUDDY_DELEGATE_CONFIG"] = str(base / "experiment" / "config.json")
+            environment["WORKBUDDY_DELEGATE_STATE_DIR"] = str(base / "experiment" / "runtime")
+            request = {"jsonrpc": "2.0", "id": 1, "method": "tools/call",
+                       "params": {"name": "workbuddy_status", "arguments": {}}}
+            process = subprocess.run(
+                ["cmd.exe", "/d", "/s", "/c", "call", str(SCRIPTS / "launch_mcp.cmd")],
+                input=json.dumps(request) + "\n", text=True, encoding="utf-8",
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                cwd=SCRIPTS.parent, env=environment, timeout=15,
+            )
+            self.assertEqual(process.returncode, 0, process.stderr)
+            status = json.loads(process.stdout)["result"]["structuredContent"]
+            self.assertEqual(Path(status["config_path"]), base / "experiment" / "config.json")
+            self.assertEqual(Path(status["state_path"]), base / "experiment" / "runtime")
+
+    @unittest.skipUnless(os.name == "nt", "Legacy launcher is a Windows batch file")
+    def test_legacy_launcher_fails_closed_without_paths(self):
+        environment = os.environ.copy()
+        for name in ("WORKBUDDY_DELEGATE_CONFIG", "WORKBUDDY_DELEGATE_STATE_DIR",
+                     "PLUGIN_DATA", "CLAUDE_PLUGIN_DATA"):
+            environment.pop(name, None)
+        process = subprocess.run(
+            ["cmd.exe", "/d", "/s", "/c", "call", str(SCRIPTS / "launch_mcp.cmd")],
+            input="", text=True, encoding="utf-8", stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE, cwd=SCRIPTS.parent, env=environment, timeout=10,
+        )
+        self.assertEqual(process.returncode, 2)
+        self.assertIn("config path is missing", process.stderr)
+
+    @unittest.skipUnless(os.name == "nt", "Legacy launcher is a Windows batch file")
+    def test_legacy_launcher_rejects_half_of_explicit_pair(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            environment = os.environ.copy()
+            environment["PLUGIN_DATA"] = str(Path(temporary) / "plugin")
+            environment["WORKBUDDY_DELEGATE_CONFIG"] = str(Path(temporary) / "custom.json")
+            environment.pop("WORKBUDDY_DELEGATE_STATE_DIR", None)
+            process = subprocess.run(
+                ["cmd.exe", "/d", "/s", "/c", "call", str(SCRIPTS / "launch_mcp.cmd")],
+                input="", text=True, encoding="utf-8", stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE, cwd=SCRIPTS.parent, env=environment, timeout=10,
+            )
+            self.assertEqual(process.returncode, 2)
+            self.assertIn("both explicit config and state paths", process.stderr)
+
 
 if __name__ == "__main__":
     unittest.main()

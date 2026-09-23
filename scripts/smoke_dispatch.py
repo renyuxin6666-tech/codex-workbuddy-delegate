@@ -7,20 +7,25 @@ import subprocess
 import sys
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--server', required=True)
+entry = parser.add_mutually_exclusive_group(required=True)
+entry.add_argument('--server')
+entry.add_argument('--launcher')
 parser.add_argument('--config', required=True)
 parser.add_argument('--state-dir', required=True)
 parser.add_argument('--live', action='store_true')
+parser.add_argument('--instruction', default='Return exactly Willow: 42 as the answer. Cite the source sentence verbatim.')
 args = parser.parse_args()
 root = Path(__file__).resolve().parents[1]
 environment = dict(os.environ, WORKBUDDY_DELEGATE_CONFIG=args.config,
                    WORKBUDDY_DELEGATE_STATE_DIR=args.state_dir)
-job = {'instruction': 'Return exactly Willow: 42 as the answer. Cite the source sentence verbatim.',
+job = {'instruction': args.instruction,
        'workspace': str(root), 'files': ['tests/fixtures/dispatch-smoke.txt'],
        'kind': 'extract', 'risk': 'low', 'dry_run': not args.live}
 request = {'jsonrpc': '2.0', 'id': 1, 'method': 'tools/call',
            'params': {'name': 'delegate_to_workbuddy', 'arguments': job}}
-process = subprocess.run([sys.executable, '-X', 'utf8', args.server],
+command = (["cmd.exe", "/d", "/s", "/c", "call", str(Path(args.launcher).resolve())]
+           if args.launcher else [sys.executable, '-X', 'utf8', args.server])
+process = subprocess.run(command,
                          input=json.dumps(request) + '\n', encoding='utf-8',
                          capture_output=True, env=environment, timeout=160)
 response = json.loads(process.stdout)['result']
