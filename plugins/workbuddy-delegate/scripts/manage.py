@@ -3,9 +3,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 import sys
 import tempfile
+import sqlite3
 
 from workbuddy_bridge import (
     BridgeError,
@@ -17,11 +19,14 @@ from workbuddy_bridge import (
     save_config,
     status,
     usage,
+    error_payload,
 )
 
 
 def build_parser() -> argparse.ArgumentParser:
     root = argparse.ArgumentParser(description="Manage WorkBuddy Delegate. No command reads or prints API keys.")
+    root.add_argument("--config", help="Exact configuration path returned by workbuddy_status.")
+    root.add_argument("--state-dir", help="Exact state path returned by workbuddy_status.")
     commands = root.add_subparsers(dest="command", required=True)
     commands.add_parser("doctor", help="Check Python, Node, WorkBuddy, paths, and limits without a model call.")
     commands.add_parser("status", help="Alias of doctor.")
@@ -101,6 +106,10 @@ def _self_test():
 
 def main() -> int:
     args = build_parser().parse_args()
+    if args.config:
+        os.environ["WORKBUDDY_DELEGATE_CONFIG"] = str(Path(args.config).expanduser().resolve())
+    if args.state_dir:
+        os.environ["WORKBUDDY_DELEGATE_STATE_DIR"] = str(Path(args.state_dir).expanduser().resolve())
     try:
         if args.command in {"doctor", "status"}:
             value = status()
@@ -128,8 +137,8 @@ def main() -> int:
             value = save_config({args.key: _coerce(args.key, args.value)})
         print(json.dumps(value, ensure_ascii=False, indent=2))
         return 0
-    except (BridgeError, OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
-        print(json.dumps({"status": "blocked", "error": str(exc)}, ensure_ascii=False), file=sys.stderr)
+    except (BridgeError, OSError, ValueError, TypeError, sqlite3.Error) as exc:
+        print(json.dumps(error_payload(exc), ensure_ascii=False), file=sys.stderr)
         return 1
 
 

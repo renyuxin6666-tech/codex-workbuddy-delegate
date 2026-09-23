@@ -4,9 +4,10 @@ from __future__ import annotations
 import json
 import sys
 import traceback
+import sqlite3
 from typing import Any, Callable
 
-from workbuddy_bridge import BridgeError, VERSION, delegate, plan, read_result, status, usage
+from workbuddy_bridge import BridgeError, VERSION, delegate, plan, read_result, status, usage, error_payload
 
 
 PROTOCOL_VERSION = "2025-06-18"
@@ -145,8 +146,8 @@ def handle(message: dict[str, Any]) -> dict[str, Any] | None:
                     "isError": False,
                 },
             )
-        except (BridgeError, OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
-            value = {"status": "blocked", "error": str(exc), "fallback": "main_agent"}
+        except (BridgeError, OSError, ValueError, TypeError, sqlite3.Error) as exc:
+            value = error_payload(exc)
             return _result(
                 request_id,
                 {

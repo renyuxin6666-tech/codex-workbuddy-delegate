@@ -1,6 +1,6 @@
 # WorkBuddy Delegate
 
-> Community / experimental · Windows-first · v0.1.0
+> Community / experimental · Windows-first · 2026-09-23 reliability update
 
 WorkBuddy Delegate is a local Codex plugin that sends **bounded, low-risk text work** to an existing WorkBuddy installation, then returns a small, inspectable draft for Codex to verify. It is designed for extraction, summarization, classification, translation, rewriting, and code drafts—not autonomous decisions or external actions.
 
@@ -30,7 +30,7 @@ The adapter uses WorkBuddy's bundled CodeBuddy CLI, which is not a documented st
 ## Install from GitHub
 
 ```powershell
-codex plugin marketplace add renyuxin6666-tech/codex-workbuddy-delegate --ref v0.1.0
+codex plugin marketplace add renyuxin6666-tech/codex-workbuddy-delegate --ref main
 codex plugin add workbuddy-delegate@renyuxin-tools
 ```
 
@@ -38,11 +38,11 @@ Restart the Codex desktop app and open a new task. Then ask:
 
 > Show WorkBuddy Delegate status and its manager command.
 
-The first file-based delegation needs an allowed root. Run the returned manager command with:
+The first file-based delegation needs an allowed root. Preserve the complete returned manager command (including configuration and state paths), then append the subcommand:
 
 ```powershell
-python "<installed-plugin>\scripts\manage.py" roots add "D:\path\to\your\project"
-python "<installed-plugin>\scripts\manage.py" self-test
+python "<installed-plugin>\scripts\manage.py" --config "<status.config_path>" --state-dir "<status.state_path>" roots add "D:\path\to\your\project"
+python "<installed-plugin>\scripts\manage.py" --config "<status.config_path>" --state-dir "<status.state_path>" self-test
 ```
 
 Provided text can be dry-run without an allowed file root. No manager command reads or prints API keys.
@@ -66,6 +66,12 @@ python plugins/workbuddy-delegate/scripts/manage.py cache prune
 ```
 
 By default, portable installs place config and runtime state under the plugin's managed `${PLUGIN_DATA}` directory. Direct script use falls back to `%LOCALAPPDATA%\WorkBuddyDelegate`.
+
+After setup, call the native `workbuddy_status` and verify that its `allowed_roots`
+and model match the changes. If the manager and MCP disagree, they are reading
+different configuration paths; use the explicit path arguments above. Do not
+remove the allowlist or disable the sandbox to fix this. Shell fallback commands
+may need scoped host approval to access WorkBuddy's installation and login.
 
 To require approval for real delegation while auto-approving read-only status tools, use Codex's plugin-scoped MCP policy. See the current [OpenAI plugin packaging documentation](https://developers.openai.com/plugins/build/plugins) because config keys may evolve.
 
@@ -108,3 +114,13 @@ python C:\Users\<you>\.codex\skills\.system\skill-creator\scripts\quick_validate
 This GitHub release is a local/repo marketplace plugin. It is **not** an official WorkBuddy integration and is not listed in the universal OpenAI Plugins Directory; public directory submission normally expects a public HTTPS MCP endpoint, while this plugin must access the user's local WorkBuddy installation.
 
 MIT licensed. WorkBuddy, CodeBuddy, Codex, OpenAI, and their marks belong to their respective owners. This community project is not affiliated with or endorsed by them.
+
+## Local dispatch reliability update
+
+The manager command returned by native status includes the exact config and state paths;
+keep these arguments when adding an approved project root. Terminal defaults may refer
+to a different configuration. `dry_run` now verifies CLI discovery, runtime-directory
+write access and the usage ledger without calling a model or consuming invocation quota.
+It does not verify login or network connectivity. Permission errors return scoped repair
+instructions; CLI failures return sanitized diagnostic categories, never raw output.
+After reinstalling, start a new Codex task to load the updated MCP process.

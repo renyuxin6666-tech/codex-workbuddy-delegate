@@ -21,6 +21,20 @@ Use the bundled MCP tools to reduce primary-task context use without transferrin
 
 Configuration changes are intentionally excluded from model tools. `workbuddy_status` returns `manager_command`, the exact local command for the installed plugin.
 
+Preserve every argument in `manager_command`, including `--config` and `--state-dir`,
+and append the management subcommand. A bare manage.py command may edit a different
+configuration from the running MCP. After changes, call the native `workbuddy_status`
+again and verify its config path, model, and allowed roots before file delegation.
+For older servers without these arguments, explicitly use the returned config_path
+and state_path as WORKBUDDY_DELEGATE_CONFIG and WORKBUDDY_DELEGATE_STATE_DIR for the
+local management process. Never infer success from the manager's output alone.
+
+Use the native MCP for delegation. If a shell fallback encounters Windows access
+denied, request the host's normal scoped execution approval; do not disable the
+sandbox, copy credentials, or broaden filesystem permissions. A missing allowed
+root requires authorization for that exact project, not a whole drive. Do not
+convert blocked file input into inline text to bypass the file allowlist.
+
 Use the manager for:
 
 - `doctor` or `status`: offline installation check.

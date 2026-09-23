@@ -15,12 +15,13 @@ import sqlite3
 import subprocess
 import sys
 import time
+import tempfile
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from typing import Any
 
 
-VERSION = "0.1.0"
+VERSION = "0.1.0+codex.20260923050437"
 KINDS = {"summarize", "extract", "classify", "translate", "rewrite", "code_draft"}
 DEFAULT_CONFIG: dict[str, Any] = {
     "model": "auto",
@@ -46,6 +47,60 @@ For code_draft put the draft in answer; it is not an applied change.
 
 class BridgeError(Exception):
     """A safe, user-actionable bridge failure."""
+
+    def __init__(self, message, *, code="bridge_error", stage="validation", action="Review the task and configuration.", **details):
+        super().__init__(message)
+        self.details = {"code": code, "stage": stage, "action": action, **details}
+
+
+def manager_command(cfg=None):
+    return [sys.executable, str(Path(__file__).resolve().parent / "manage.py"),
+            "--config", str(config_path()), "--state-dir", str(state_path(cfg))]
+
+
+def error_payload(exc):
+    details = getattr(exc, "details", {})
+    if isinstance(exc, PermissionError):
+        details = {"code": "filesystem_permission_denied", "stage": "filesystem",
+                   "action": "Request access to the exact denied path; do not disable sandboxing or broaden roots."}
+    elif isinstance(exc, sqlite3.Error):
+        details = {"code": "ledger_unavailable", "stage": "state",
+                   "action": "Check state_path permissions and SQLite availability."}
+    return {"status": "blocked", "error": str(exc), "fallback": "main_agent", **details}
+
+
+def local_preflight(cfg):
+    installation(cfg)
+    try:
+        for directory in (state_path(cfg), state_path(cfg) / "results", state_path(cfg) / "empty-worker"):
+            directory.mkdir(parents=True, exist_ok=True)
+            with tempfile.TemporaryFile(dir=directory) as probe:
+                probe.write(b"probe")
+                probe.flush()
+        with connect_ledger(state_path(cfg)) as database:
+            database.execute("BEGIN IMMEDIATE")
+    except (OSError, sqlite3.Error) as exc:
+        raise BridgeError("Local runtime storage is not writable; no request sent.",
+                          code="state_unavailable", stage="preflight", request_sent=False,
+                          state_path=str(state_path(cfg)),
+                          action="Approve access to this exact state_path or configure a writable plugin state directory.") from exc
+    return {"local_checks": "passed", "live_connectivity": "not_checked", "request_sent": False}
+
+
+def cli_failure(raw):
+    # Inspect locally, but never return raw CLI output: it may contain credentials or source text.
+    categories = [
+        (r"401|unauthorized|not logged in|login required|登录", "login_required", "Open WorkBuddy and sign in with the same Windows user."),
+        (r"429|quota|rate.limit|insufficient|余额|额度", "quota_or_rate_limit", "Check WorkBuddy quota; do not retry automatically."),
+        (r"403|forbidden|permission|access.denied|EACCES|EPERM|权限", "access_denied", "Check model entitlement and exact local path permissions; do not disable sandboxing."),
+        (r"ENOTFOUND|ECONN|ETIMEDOUT|certificate|proxy|network", "network_error", "Check network, proxy and certificates without changing the model."),
+    ]
+    for pattern, code, action in categories:
+        if re.search(pattern, raw, re.I):
+            return BridgeError("WorkBuddy failed; category inferred from local diagnostics.", code=code,
+                               stage="worker", action=action, request_sent="unknown", classification="heuristic")
+    return BridgeError("WorkBuddy did not complete; no automatic retry.", code="worker_failed", stage="worker",
+                       action="Check WorkBuddy login, model availability and client health.", request_sent="unknown")
 
 
 def app_home() -> Path:
@@ -161,7 +216,11 @@ def read_sources(
                 continue
         if not any(root == allowed or root.is_relative_to(allowed) for allowed in resolved_allowed):
             raise BridgeError(
-                "workspace is not in allowed_roots. Add it with the local manager before delegating files."
+                "workspace is not in allowed_roots. No request sent.",
+                code="workspace_not_allowed", stage="preflight", request_sent=False,
+                workspace=str(root), config_path=str(config_path()),
+                action="After approval for this exact project, run repair_command, then recheck native status.",
+                repair_command=manager_command() + ["roots", "add", str(root)],
             )
     if not isinstance(text, str):
         raise BridgeError("text must be a string")
@@ -328,7 +387,7 @@ def parse_cli(raw: str) -> tuple[str, dict[str, Any]]:
         raise BridgeError("Unexpected WorkBuddy response.")
     results = [event for event in events if isinstance(event, dict) and event.get("type") == "result"]
     if not results or results[-1].get("is_error") or results[-1].get("subtype") != "success":
-        raise BridgeError("WorkBuddy did not complete. Check login, quota, and model availability; no automatic retry.")
+        raise cli_failure(json.dumps(results[-1] if results else {}, ensure_ascii=False))
     result = results[-1]
     usage = result.get("usage") or {}
     credits: list[float] = []
@@ -378,9 +437,7 @@ def invoke(cfg: dict[str, Any], prompt: str, cwd: Path) -> tuple[str, dict[str, 
     except subprocess.TimeoutExpired as exc:
         raise BridgeError("WorkBuddy timed out; the child stopped. Remote billing may have occurred. No retry.") from exc
     if process.returncode:
-        raise BridgeError(
-            f"WorkBuddy exited with code {process.returncode}. Open the client and check login/model; no retry."
-        )
+        raise cli_failure(process.stderr + "\n" + process.stdout)
     return parse_cli(process.stdout)
 
 
@@ -468,8 +525,8 @@ def delegate(
         "input_chars": len(prompt),
     }
     if dry_run:
-        return {**info, "dry_run": True, "request_sent": False}
-    installation(cfg)
+        return {**info, "dry_run": True, **local_preflight(cfg)}
+    local_preflight(cfg)
     state = state_path(cfg)
     results = state / "results"
     results.mkdir(parents=True, exist_ok=True)
@@ -525,7 +582,10 @@ def status(cfg: dict[str, Any] | None = None) -> dict[str, Any]:
         "config_path": str(config_path()),
         "config_exists": config_path().is_file(),
         "state_path": str(state_path(cfg)),
-        "manager_command": [sys.executable, str(Path(__file__).resolve().parent / "manage.py")],
+        "manager_command": [
+            sys.executable, str(Path(__file__).resolve().parent / "manage.py"),
+            "--config", str(config_path()), "--state-dir", str(state_path(cfg)),
+        ],
         "model": cfg["model"],
         "daily_call_limit": cfg["daily_call_limit"],
         "max_input_chars": cfg["max_input_chars"],
@@ -536,11 +596,15 @@ def status(cfg: dict[str, Any] | None = None) -> dict[str, Any]:
     try:
         node, cli = installation(cfg)
         result.update({"installed": True, "node": node, "cli": str(cli / "bin" / "codebuddy")})
-    except BridgeError as exc:
+    except (BridgeError, OSError) as exc:
         result.update({"installed": False, "installation_error": str(exc)})
-    today = usage(1, cfg)["runs"].get(datetime.now().strftime("%Y-%m-%d"), {})
-    result["calls_today"] = sum(today.values())
-    result["calls_today_by_status"] = today
+    try:
+        today = usage(1, cfg)["runs"].get(datetime.now().strftime("%Y-%m-%d"), {})
+        result["calls_today"] = sum(today.values())
+        result["calls_today_by_status"] = today
+    except (OSError, sqlite3.Error) as exc:
+        result["calls_today"] = None
+        result["state_error"] = error_payload(exc)
     return result
 
 
