@@ -113,7 +113,7 @@ Keep in Codex:
 
 ## Evaluation snapshot
 
-To test actual Token efficiency and quality, see the [preregistered paired experiment plan](experiment/PROTOCOL.md). It separates Codex usage, WorkBuddy usage, blind quality scores, failures, and optional lower-tier Codex subagents. Its status is `planned`; no savings result is claimed yet.
+To test actual Token efficiency and quality, see the [preregistered paired experiment plan](experiment/PROTOCOL.md). It separates Codex usage, WorkBuddy usage, blind quality scores, failures, and optional lower-tier Codex subagents. The [2026-09-23 preflight](experiment/PREFLIGHT_2026-09-23.md) stopped before scored A/B runs because the headless delegate path failed; status is `inconclusive`, with no savings result claimed.
 
 The bounded prototype scored **93.18/100** on one synthetic 22,049-character authority/version extraction fixture, but failed the strict completeness gate because it captured only **6/11** superseded historical relations. It captured current constraints **5/5**, unresolved issues **1/1**, and exact evidence **6/6**, with no accepted prompt-injection instruction. This supports current-state extraction with Codex review—not complete historical auditing or generalized performance. See [BENCHMARK.md](BENCHMARK.md).
 
