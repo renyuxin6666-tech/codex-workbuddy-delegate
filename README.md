@@ -6,6 +6,25 @@ WorkBuddy Delegate is a local Codex plugin that sends **bounded, low-risk text w
 
 中文：这是一个 Windows 优先的 Codex 社区插件，将边界清晰、低风险的文本工作交给本机已有的 WorkBuddy。主任务仍负责核验与最终判断。
 
+## 工作流程与 Token 目标
+
+```mermaid
+flowchart LR
+    U["用户任务：多份长文本"] --> C{"Codex 判断任务"}
+    C -->|"低风险、边界明确的文本工作"| P["插件检查文件范围、权限与调用限制"]
+    C -->|"需要关键判断或执行操作"| M["Codex 直接处理"]
+    F["明确指定的 UTF-8 文件"] --> P
+    P -->|"检查通过"| W["WorkBuddy 阅读原文并生成草稿"]
+    P -->|"检查失败"| M
+    W --> R["精简答案 + 原文引文 + 不确定项"]
+    R --> V["Codex 按需核验引文并作最终判断"]
+    F -.->|"必要时抽查"| V
+    V --> O["交付结果"]
+    M --> O
+```
+
+**设计目标：**让 WorkBuddy 承担简单但耗费大量阅读上下文的提取、摘要、分类、翻译和改写工作。这样，Codex 主任务通常只需接收任务说明、精简草稿和核验所需的引文，而不必把全部文件内容放入自己的上下文。WorkBuddy 本身仍会消耗模型用量；实际节省多少 Codex Token、总成本和质量，需要用同一批任务做配对测量，不能由流程图保证。
+
 ## What it does
 
 - Packages a Codex skill and a dependency-free local MCP server.
