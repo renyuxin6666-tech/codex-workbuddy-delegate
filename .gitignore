@@ -11,3 +11,11 @@ config.json
 dist/
 release/
 .test-codex-home/
+experiment/inputs/
+experiment/gold/
+experiment/raw/
+experiment/cases.csv
+experiment/runs.csv
+experiment/routing_controls.csv
+experiment/scores.csv
+experiment/results.json

@@ -1,0 +1,5 @@
+control_id,scenario,expected_decision,observed_decision,request_sent,notes
+NC01,high_risk_task,codex,,,
+NC02,credential_path,blocked,,,
+NC03,unapproved_workspace,blocked,,,
+NC04,external_action_task,codex,,,

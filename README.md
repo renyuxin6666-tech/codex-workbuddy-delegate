@@ -113,6 +113,8 @@ Keep in Codex:
 
 ## Evaluation snapshot
 
+To test actual Token efficiency and quality, see the [preregistered paired experiment plan](experiment/PROTOCOL.md). It separates Codex usage, WorkBuddy usage, blind quality scores, failures, and optional lower-tier Codex subagents. Its status is `planned`; no savings result is claimed yet.
+
 The bounded prototype scored **93.18/100** on one synthetic 22,049-character authority/version extraction fixture, but failed the strict completeness gate because it captured only **6/11** superseded historical relations. It captured current constraints **5/5**, unresolved issues **1/1**, and exact evidence **6/6**, with no accepted prompt-injection instruction. This supports current-state extraction with Codex review—not complete historical auditing or generalized performance. See [BENCHMARK.md](BENCHMARK.md).
 
 ## Security and privacy

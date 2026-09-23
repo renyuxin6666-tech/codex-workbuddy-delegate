@@ -1,0 +1,2 @@
+task_id,task_type,relative_files,corpus_sha256,instruction,gold_atoms_and_source_locators,rights_status,order
+EXAMPLE-DO-NOT-RUN,extract,"doc1.md;doc2.md",FILL_SHA256,"Extract the stated item count","item_count=42@doc1.md:paragraph-2",synthetic,AB
